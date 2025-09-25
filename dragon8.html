@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smoothed Hand Tracking Dragon</title>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #0d0d0d; cursor: crosshair; }
+        canvas { display: block; position: absolute; top: 0; left: 0; z-index: 1; }
+        .input_video { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; object-fit: cover; transform: scaleX(-1); z-index: 0; }
+    </style>
+</head>
+<body>
+    <canvas id="dragonCanvas"></canvas>
+    <video class="input_video"></video>
+
+    <script>
+        const canvas = document.getElementById('dragonCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const config = {
+            smoothingFactor: 0.2,  
+            numBodySegments: 50,
+            numWingSegments: 25,
+            segmentLength: 20,
+            easing: 0.09,
+            headSize: 50,
+            bodySize: 20,
+            wingSize: 30,
+            waveAmplitude: 1,
+            waveFrequency: 0.003,
+            wingAngle: Math.PI / 4,
+            wingFlapSpeed: 0.060,
+            wingFlapAmplitude: 12
+        };
+        
+        const CHARS = "10";
+       
+        let mouse = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+       
+        let rawFingertip = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+        
+        let segments = [];
+        let leftWing = [];
+        let rightWing = [];
+        let frame = 0;
+
+        function setupCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+
+        function createDragon() {
+            segments = [];
+            for (let i = 0; i < config.numBodySegments; i++) {
+                segments.push({ x: window.innerWidth / 2, y: window.innerHeight / 2, char: CHARS[Math.floor(Math.random() * CHARS.length)] });
+            }
+            leftWing = [];
+            rightWing = [];
+            for (let i = 0; i < config.numWingSegments; i++) {
+                leftWing.push({ x: 0, y: 0, char: CHARS[Math.floor(Math.random() * CHARS.length)] });
+                rightWing.push({ x: 0, y: 0, char: CHARS[Math.floor(Math.random() * CHARS.length)] });
+            }
+        }
+
+        function updateDragon() {
+            const head = segments[0];
+            const dx = mouse.x - head.x; 
+            const dy = mouse.y - head.y;
+            head.x += dx * config.easing;
+            head.y += dy * config.easing;
+            updateSegmentChain(segments);
+            const shoulderSegment = segments[5];
+            const prevShoulder = segments[4];
+            const angle = Math.atan2(shoulderSegment.y - prevShoulder.y, shoulderSegment.x - prevShoulder.x);
+            updateWing(leftWing, shoulderSegment, angle - config.wingAngle, 1);
+            updateWing(rightWing, shoulderSegment, angle + config.wingAngle, -1);
+        }
+
+        function updateSegmentChain(chain) {
+            for (let i = 1; i < chain.length; i++) {
+                const prev = chain[i - 1];
+                const current = chain[i];
+                current.x += (prev.x - current.x) * config.easing;
+                current.y += (prev.y - current.y) * config.easing;
+                const angle = Math.atan2(prev.y - current.y, prev.x - current.x);
+                const waveOffset = Math.sin(i * 0.5 + frame * config.waveFrequency) * config.waveAmplitude * (i / chain.length);
+                current.x -= Math.sin(angle) * waveOffset;
+                current.y += Math.cos(angle) * waveOffset;
+                const dx = current.x - prev.x;
+                const dy = current.y - prev.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist > config.segmentLength) {
+                    const correctionAngle = Math.atan2(dy, dx);
+                    current.x = prev.x + Math.cos(correctionAngle) * config.segmentLength;
+                    current.y = prev.y + Math.sin(correctionAngle) * config.segmentLength;
+                }
+            }
+        }
+        
+        function updateWing(wing, shoulder, baseAngle, direction) {
+            const flap = Math.sin(frame * config.wingFlapSpeed) * config.wingFlapAmplitude * direction;
+            wing[0].x = shoulder.x; wing[0].y = shoulder.y;
+            for (let i = 1; i < wing.length; i++) {
+                const parent = wing[i - 1];
+                const angle = baseAngle + (i / wing.length) * (Math.PI / 4 * direction) + flap / (200 / i);
+                wing[i].x = parent.x + Math.cos(angle) * config.segmentLength * 0.8;
+                wing[i].y = parent.y + Math.sin(angle) * config.segmentLength * 0.8;
+            }
+        }
+
+        function drawDragon() {
+            ctx.fillStyle = 'rgba(13, 13, 13, 0.4)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            drawSegmentChain(leftWing, config.wingSize, 'rgba(100, 200, 255, 0.7)');
+            drawSegmentChain(rightWing, config.wingSize, 'rgba(100, 200, 255, 0.7)');
+            drawSegmentChain(segments, config.bodySize, 'rgba(150, 255, 180, 0.8)');
+            ctx.font = `${config.headSize}px monospace`;
+            ctx.fillStyle = 'rgba(255, 255, 255, 1)';
+            ctx.fillText(segments[0].char, segments[0].x, segments[0].y);
+          
+            ctx.fillStyle = 'white';
+            ctx.beginPath();
+            ctx.arc(mouse.x, mouse.y, 5, 0, 2 * Math.PI);
+            ctx.fill();
+        }
+
+        function drawSegmentChain(chain, baseSize, color) {
+            for (let i = 1; i < chain.length; i++) {
+                const segment = chain[i];
+                const size = baseSize * ((chain.length - i) / chain.length * 0.8 + 0.2);
+                ctx.font = `${size}px monospace`;
+                ctx.fillStyle = color;
+                if (frame % 3 === 0) { segment.char = CHARS[Math.floor(Math.random() * CHARS.length)]; }
+                ctx.fillText(segment.char, segment.x, segment.y);
+            }
+        }
+
+        function animate() {
+            
+            mouse.x += (rawFingertip.x - mouse.x) * config.smoothingFactor;
+            mouse.y += (rawFingertip.y - mouse.y) * config.smoothingFactor;
+
+            updateDragon();
+            drawDragon();
+            frame++;
+            requestAnimationFrame(animate);
+        }
+
+     
+        window.addEventListener('mousemove', (e) => {
+            rawFingertip.x = e.clientX;
+            rawFingertip.y = e.clientY;
+        });
+        window.addEventListener('resize', () => { setupCanvas(); });
+
+        setupCanvas();
+        createDragon();
+        animate();
+
+     
+        const videoElement = document.querySelector('.input_video');
+
+       
+        function onResults(results) {
+            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                const handLandmarks = results.multiHandLandmarks[0];
+                const indexFingertip = handLandmarks[8];
+                rawFingertip.x = canvas.width * (1 - indexFingertip.x);
+                rawFingertip.y = canvas.height * indexFingertip.y;
+            }
+        }
+
+        const hands = new Hands({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}` });
+        hands.setOptions({ maxNumHands: 1, modelComplexity: 1, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
+        hands.onResults(onResults);
+        const camera = new Camera(videoElement, { onFrame: async () => { await hands.send({ image: videoElement }); }, width: 1280, height: 720 });
+        camera.start();
+    </script>
+</body>
+</html>
