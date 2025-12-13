@@ -1,6 +1,8 @@
+
 <div align="center">
 
 # 🐉✨ **Smoothed Hand-Tracking Dragon**
+
 ### _A futuristic interactive ASCII dragon controlled by your hands_
 
 ![Made with JS](https://img.shields.io/badge/Made%20with-JavaScript-F7DF1E?style=for-the-badge)
@@ -54,49 +56,48 @@ MediaPipe tracks the hand → extracts **landmark[8]** (index fingertip).
 ```js
 mouse.x += (rawFingertip.x - mouse.x) * smoothingFactor;
 mouse.y += (rawFingertip.y - mouse.y) * smoothingFactor;
+```
 
-. Dragon physics
-
+### 3. Dragon physics
 Each segment follows the previous through:
+- easing
+- directional correction
+- sine-wave body offset
 
-easing
-
-directional correction
-
-sine-wave body offset
-
-4. Procedural wings
-
+### 4. Procedural wings
 Wing shapes are built dynamically and flap using:
-
+```js
 Math.sin(frame * wingFlapSpeed) * wingFlapAmplitude
+```
 
-🖼 Preview (Add Screenshot/GIF Here)
-![Dragon Demo](assets/dragon-demo.gif)
+---
 
-📦 Installation & Usage
-1️⃣ Clone the repository
+## 📦 **Installation & Usage**
+
+### 1️⃣ Clone the repository
+```bash
 git clone https://github.com/your-username/hand-tracking-dragon.git
 cd hand-tracking-dragon
+```
 
-2️⃣ Run the project
-
+### 2️⃣ Run the project
 Just open the HTML file in any browser:
-
+```bash
 index.html
+```
 
-3️⃣ Allow camera access
-
+### 3️⃣ Allow camera access
 Webcam permission is required for hand tracking.
 
-4️⃣ Move your hand
-
+### 4️⃣ Move your hand
 The dragon will follow your index finger smoothly.
 
-🛠 Configuration (Customize the Dragon)
+---
+
+## 🛠 **Configuration (Customize the Dragon)**
 
 Inside config:
-
+```js
 smoothingFactor: 0.2,
 numBodySegments: 50,
 numWingSegments: 25,
@@ -104,43 +105,42 @@ segmentLength: 20,
 wingFlapSpeed: 0.060,
 waveFrequency: 0.003,
 headSize: 50,
-
+```
 
 You can modify:
+- speed
+- body length
+- wing style
+- wave motion
+- visual aesthetics
 
-speed
+---
 
-body length
+## 🚀 **Future Upgrades**
 
-wing style
+- 🔥 Fire-breathing effect
+- 🌈 Neon gradient particle trails
+- 👾 Multi-dragon mode
+- 🎮 Game version (collect orbs, avoid enemies)
+- 🎨 Skins/theme selector
 
-wave motion
+---
 
-visual aesthetics
+## ❤️ **Credits**
 
-🚀 Future Upgrades
+- **MediaPipe Hands** — for real-time tracking
+- **HTML5 Canvas** — for rendering
+- Custom animation logic & ASCII dragon art
 
-🔥 Fire-breathing effect
-
-🌈 Neon gradient particle trails
-
-👾 Multi-dragon mode
-
-🎮 Game version (collect orbs, avoid enemies)
-
-🎨 Skins/theme selector
-
-❤️ Credits
-
-MediaPipe Hands — for real-time tracking
-
-HTML5 Canvas — for rendering
-
-Custom animation logic & ASCII dragon art
+---
 
 <div align="center">
-⭐ If you like this project, give it a star!
+
+⭐ **If you like this project, give it a star!**
 
 Made with ❤️ by creative coding.
 
-</div> ```
+</div>
+
+
+
